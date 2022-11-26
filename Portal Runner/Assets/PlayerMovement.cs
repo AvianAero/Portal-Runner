@@ -11,15 +11,29 @@ public class PlayerMovement : MonoBehaviour
     public float walkSpeed;
     public float runSpeed;
 
+    private bool isSprint = false;
+    private float momentumX = 1.0f;
+    private float momentumLog = 0.0f;
+    public float momentumMax;
+    public float momentumGain;
+    public float sprintSlowDown;
+    public float sprintFlatBoost;
+
+    public DebugLogs log;
+
     private CharacterController controller;
     private Vector3 currentMoveVelocity;
     private Vector3 moveDampVelocity;
+    private Vector3 finalVelocity;
 
     private Vector3 currentForceVelocity;
 
+    private Rigidbody rb;
+
     void Start()
     {
-        controller = GetComponent<CharacterController>();
+        //controller = GetComponent<CharacterController>();
+        rb =  GetComponent<Rigidbody>();
     }
 
     void Update()
@@ -35,7 +49,21 @@ public class PlayerMovement : MonoBehaviour
         }
 
         Vector3 moveVector = transform.TransformDirection(playerInput);
-        float currentSpeed = Input.GetKey(KeyCode.LeftShift) ? runSpeed : walkSpeed;
+        isSprint = Input.GetKey(KeyCode.LeftShift);
+        if(isSprint && momentumX < momentumMax){
+            momentumX += momentumGain * Time.deltaTime;
+        }else if (momentumX > 1.0f){
+            momentumX -= momentumGain * Time.deltaTime * sprintSlowDown;
+        } else {
+            momentumX = 1.0f;
+        }
+        momentumLog = momentumMax * Mathf.Log(momentumX, 10);
+
+
+        float currentSpeed = walkSpeed + momentumLog;
+        if(isSprint){
+            currentSpeed += sprintFlatBoost;
+        }
 
         currentMoveVelocity = Vector3.SmoothDamp(
             currentMoveVelocity,
@@ -44,19 +72,37 @@ public class PlayerMovement : MonoBehaviour
             moveTime
         );
 
-        controller.Move(currentMoveVelocity * Time.deltaTime);
+        
+        //controller.Move(currentMoveVelocity * Time.deltaTime);
 
         Ray groundCheckRay = new Ray(transform.position, Vector3.down);
         if (Physics.Raycast(groundCheckRay, 1.1f)){
+            log.DebugText("isGround", "true");
             currentForceVelocity.y = -2;
 
             if(Input.GetKey(KeyCode.Space)){
-                currentForceVelocity.y = jumpStr;
+                currentForceVelocity.y = jumpStr + (momentumLog/4);
+                if(isSprint){
+                    currentForceVelocity.y += 1;
+                }
             }
         }else{
             currentForceVelocity.y -= gravityStr * Time.deltaTime;
+            log.DebugText("isGround", "false");
         }
+        //controller.Move(currentForceVelocity * Time.deltaTime);
 
-        controller.Move(currentForceVelocity * Time.deltaTime);
+        finalVelocity = currentMoveVelocity + currentForceVelocity;
+
+        rb.velocity = finalVelocity;
+
+        //DEBUGS
+        log.DebugText("velocity", (finalVelocity).ToString());
+        log.DebugText("momentumX", momentumX.ToString());
+        log.DebugText("momentumLog", momentumLog.ToString());
+        log.DebugText("isSprint", isSprint.ToString());
+
+
+       
     }
 }
