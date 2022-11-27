@@ -13,6 +13,7 @@ public class PlayerMovement : MonoBehaviour
 
     private bool isSprint = false;
     private bool isGround = false;
+    private bool isWallRun = false;
     private float momentumX = 1.0f; //x in ylog_10 x graph
     private float momentumLog = 0.0f; //output of graph
     public float momentumMax;
@@ -24,6 +25,7 @@ public class PlayerMovement : MonoBehaviour
     private Vector3 isWallJump = new Vector3(1f,1f,1f);
     private float wallJumpMoveTime;
     public float wallJumpMoveTimeSet;
+    public float wallRunGravityPercent;
 
     public DebugLogs log;
     public PlayerWalls wall;
@@ -98,6 +100,18 @@ public class PlayerMovement : MonoBehaviour
             isGround = false;
         }
 
+        //finds if wallRun
+        //*eventually set wallRun to false is direction is swapped and slightly push player towards wall
+        isWallRun = false;
+        if(!isGround){
+            if(wall.GetXWall() != 0 && (rb.velocity.z > 4f || rb.velocity.z < -4f)){
+                isWallRun = true;
+            }else if(wall.GetZWall() != 0 && (rb.velocity.x > 4f || rb.velocity.x < -4f)){
+                isWallRun = true;
+            }
+        }
+
+        //Jump code
         if(isGround){
             currentForceVelocity.y = -2;
 
@@ -107,7 +121,7 @@ public class PlayerMovement : MonoBehaviour
                     currentForceVelocity.y += 1;
                 }
             }
-        }else if(wall.GetXWall() != 0.0f || wall.GetZWall() != 0.0f){
+        }else if(wall.GetXWall() != 0.0f || wall.GetZWall() != 0.0f){ //Wall jump *Make wall jump push in run dirrection during wall run
 
             if(wallJumpMoveTime <= 0){
                 isWallJump = new Vector3(1f,1f,1f);
@@ -119,7 +133,11 @@ public class PlayerMovement : MonoBehaviour
                 }
             }
 
-            currentForceVelocity.y -= gravityStr * Time.deltaTime;
+            if(isWallRun){ //wall Run
+                currentForceVelocity.y -= gravityStr * Time.deltaTime * wallRunGravityPercent;
+            }else{
+                currentForceVelocity.y -= gravityStr * Time.deltaTime;
+            }
             if(Input.GetKeyDown(KeyCode.Space)){
 
 
@@ -130,7 +148,7 @@ public class PlayerMovement : MonoBehaviour
                 wallJumpVelocity = new Vector3(wall.GetXWall(), 0.0f, wall.GetZWall()) * -wallJumpScale;
                 wallJumpMoveTime = wallJumpMoveTimeSet;
 
-                momentumX = 1f; //improve wall jump sprint later
+                momentumX = 1f; //*improve wall jump sprint later
 
             }
 
@@ -145,6 +163,7 @@ public class PlayerMovement : MonoBehaviour
         }
         //controller.Move(currentForceVelocity * Time.deltaTime);
         finalVelocity = currentMoveVelocity + currentForceVelocity + wallJumpVelocity;
+        Debug.Log(currentForceVelocity.y);
         rb.velocity = finalVelocity;
 
         //DEBUGS
@@ -153,6 +172,8 @@ public class PlayerMovement : MonoBehaviour
         log.DebugText("momentumX", momentumX.ToString());
         log.DebugText("momentumLog", momentumLog.ToString());
         log.DebugText("isSprint", isSprint.ToString());
+        log.DebugText("wallJumpTime", wallJumpMoveTime.ToString());
+        log.DebugText("wallRun", isWallRun.ToString());
 
 
        

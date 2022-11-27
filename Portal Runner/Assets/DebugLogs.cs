@@ -14,6 +14,8 @@ public class DebugLogs : MonoBehaviour
     public Text isSprint;
     public Text momentumLog;
     public Text walls;
+    public Text wallJumpTime;
+    public Text wallRun;
 
     // Start is called before the first frame update
     void Start()
@@ -53,6 +55,12 @@ public class DebugLogs : MonoBehaviour
                 break;
             case "walls":
                 walls.text = v;
+                break;
+            case "wallJumpTime":
+                wallJumpTime.text = v;
+                break;
+            case "wallRun":
+                wallRun.text = v;
                 break;
         }
     }
