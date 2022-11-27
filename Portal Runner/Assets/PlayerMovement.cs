@@ -14,6 +14,9 @@ public class PlayerMovement : MonoBehaviour
     private bool isSprint = false;
     private bool isGround = false;
     private bool isWallRun = false;
+    private bool isLedge = false;
+    private bool isSlide = false;
+
     private float momentumX = 1.0f; //x in ylog_10 x graph
     private float momentumLog = 0.0f; //output of graph
     public float momentumMax;
@@ -26,6 +29,8 @@ public class PlayerMovement : MonoBehaviour
     private float wallJumpMoveTime;
     public float wallJumpMoveTimeSet;
     public float wallRunGravityPercent;
+    private Vector3 ledgePos;
+    public float slideSlowDown;
 
     public DebugLogs log;
     public PlayerWalls wall;
@@ -64,9 +69,21 @@ public class PlayerMovement : MonoBehaviour
             playerInput.Normalize();
         }
 
+        //slide code
+        if(Input.GetKey("q")){
+            isSlide = true;
+            gameObject.transform.localScale = new Vector3 (1f, .5f, 1f);
+            rb.drag = slideSlowDown;
+        }else{
+            isSlide = false;
+            gameObject.transform.localScale = new Vector3 (1f, 1f, 1f);
+            rb.drag = 0f;
+        }
+
+        //sprint momentum
         Vector3 moveVector = transform.TransformDirection(playerInput);
         isSprint = Input.GetKey(KeyCode.LeftShift) && isGround;
-        if(isSprint && momentumX < momentumMax){
+        if(isSprint && momentumX < momentumMax && !isSlide){
             momentumX += momentumGain * Time.deltaTime;
         }else if (momentumX > 1.0f){
             if(isGround){
@@ -75,6 +92,7 @@ public class PlayerMovement : MonoBehaviour
         } else {
             momentumX = 1.0f;
         }
+        //calculates momentum graph
         momentumLog = momentumMax * Mathf.Log(momentumX, 10);
 
 
@@ -111,8 +129,21 @@ public class PlayerMovement : MonoBehaviour
             }
         }
 
-        //Jump code
-        if(isGround){
+        //ledge grabs
+        //*can't currently allow ledge in corners
+        if(isLedge && (Input.GetKeyDown(KeyCode.Space))){
+
+                //*animation flag goes here
+
+                if(wall.GetXWall() != 0){
+                    gameObject.transform.position = new Vector3 (ledgePos.x, ledgePos.y + 1.5f, gameObject.transform.position.z);
+                }
+                else if(wall.GetZWall() != 0){
+                    gameObject.transform.position = new Vector3 (gameObject.transform.position.x, ledgePos.y + 1f, ledgePos.z);
+                }else{
+                    Debug.Log("Unknown Ledge Detected");
+                }
+        }else if(isGround){ //jump code
             currentForceVelocity.y = -2;
 
             if(Input.GetKey(KeyCode.Space)){
@@ -163,8 +194,11 @@ public class PlayerMovement : MonoBehaviour
         }
         //controller.Move(currentForceVelocity * Time.deltaTime);
         finalVelocity = currentMoveVelocity + currentForceVelocity + wallJumpVelocity;
-        Debug.Log(currentForceVelocity.y);
-        rb.velocity = finalVelocity;
+        if(isSlide){
+
+        }else{
+            rb.velocity = finalVelocity;
+        }
 
         //DEBUGS
         log.DebugText("isGround", isGround.ToString());
@@ -174,8 +208,23 @@ public class PlayerMovement : MonoBehaviour
         log.DebugText("isSprint", isSprint.ToString());
         log.DebugText("wallJumpTime", wallJumpMoveTime.ToString());
         log.DebugText("wallRun", isWallRun.ToString());
+        log.DebugText("isLedge", isLedge.ToString());
+        log.DebugText("isSlide", isSlide.ToString());
 
 
        
+    }
+
+    private void OnTriggerEnter(Collider other){
+        if(other.tag == "Ledge"){
+            isLedge = true;
+            ledgePos = other.gameObject.transform.position;
+        }
+    }
+
+    private void OnTriggerExit(Collider other){
+        if(other.tag == "Ledge"){
+            isLedge = false;
+        }
     }
 }
