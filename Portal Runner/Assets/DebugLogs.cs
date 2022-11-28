@@ -18,6 +18,9 @@ public class DebugLogs : MonoBehaviour
     public Text wallRun;
     public Text isLedge;
     public Text isSlide;
+    public Text isFallStun;
+    public Text fallStunTime;
+    public Text rollTime;
 
     // Start is called before the first frame update
     void Start()
@@ -69,6 +72,15 @@ public class DebugLogs : MonoBehaviour
                 break;
             case "isSlide":
                 isSlide.text = v;
+                break;
+            case "isFallStun":
+                isFallStun.text = v;
+                break;
+            case "fallStunTime":
+                fallStunTime.text = v;
+                break;
+            case "rollTime":
+                rollTime.text = v;
                 break;
         }
     }

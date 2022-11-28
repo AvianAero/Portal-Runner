@@ -16,6 +16,7 @@ public class PlayerMovement : MonoBehaviour
     private bool isWallRun = false;
     private bool isLedge = false;
     private bool isSlide = false;
+    private bool isFallStun = false;
 
     private float momentumX = 1.0f; //x in ylog_10 x graph
     private float momentumLog = 0.0f; //output of graph
@@ -31,6 +32,12 @@ public class PlayerMovement : MonoBehaviour
     public float wallRunGravityPercent;
     private Vector3 ledgePos;
     public float slideSlowDown;
+    public float stunFallSpeed;
+    public float fallStunSlowDown;
+    private float fallStunTime;
+    public float fallStunTimeSet;
+    private float rollTime;
+    public float rollTimeSet;
 
     public DebugLogs log;
     public PlayerWalls wall;
@@ -69,7 +76,7 @@ public class PlayerMovement : MonoBehaviour
             playerInput.Normalize();
         }
 
-        //slide code
+        //slide code *fix jumping and sliding later
         if(Input.GetKey("q")){
             isSlide = true;
             gameObject.transform.localScale = new Vector3 (1f, .5f, 1f);
@@ -129,6 +136,22 @@ public class PlayerMovement : MonoBehaviour
             }
         }
 
+        //fall stun and roll
+        if(Input.GetKeyDown("r")){
+            rollTime = rollTimeSet;
+        }
+        if(rollTime > 0){
+            rollTime -= Time.deltaTime;
+        }
+        if(isGround && rb.velocity.y < -stunFallSpeed){
+            if(rollTime > 0){
+                //*animation roll flag here
+            }else{
+                isFallStun = true;
+                fallStunTime = fallStunTimeSet;
+            }
+        }
+
         //ledge grabs
         //*can't currently allow ledge in corners
         if(isLedge && (Input.GetKeyDown(KeyCode.Space))){
@@ -142,6 +165,7 @@ public class PlayerMovement : MonoBehaviour
                     gameObject.transform.position = new Vector3 (gameObject.transform.position.x, ledgePos.y + 1f, ledgePos.z);
                 }else{
                     Debug.Log("Unknown Ledge Detected");
+                    gameObject.transform.position = new Vector3 (ledgePos.x, ledgePos.y + 1f, ledgePos.z);
                 }
         }else if(isGround){ //jump code
             currentForceVelocity.y = -2;
@@ -193,9 +217,14 @@ public class PlayerMovement : MonoBehaviour
             wallJumpVelocity = new Vector3(0f,0f,0f);
         }
         //controller.Move(currentForceVelocity * Time.deltaTime);
-        finalVelocity = currentMoveVelocity + currentForceVelocity + wallJumpVelocity;
+        if(fallStunTime > 0){
+            finalVelocity = currentForceVelocity + (currentMoveVelocity + wallJumpVelocity) * fallStunSlowDown;
+            fallStunTime -= Time.deltaTime;
+        }else{
+            finalVelocity = currentForceVelocity + (currentMoveVelocity + wallJumpVelocity);
+        }
         if(isSlide){
-
+            //can't remember is something goes here
         }else{
             rb.velocity = finalVelocity;
         }
@@ -210,6 +239,9 @@ public class PlayerMovement : MonoBehaviour
         log.DebugText("wallRun", isWallRun.ToString());
         log.DebugText("isLedge", isLedge.ToString());
         log.DebugText("isSlide", isSlide.ToString());
+        log.DebugText("isFallStun", isFallStun.ToString());
+        log.DebugText("fallStunTime", fallStunTime.ToString());
+        log.DebugText("rollTime", rollTime.ToString());
 
 
        
